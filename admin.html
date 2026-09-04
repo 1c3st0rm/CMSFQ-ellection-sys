@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMSFQ STUGOV - Admin Panel</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-container {
+            max-width: 600px;
+            margin: 30px auto;
+            padding: 25px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #0A192F;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .form-group textarea {
+            resize: vertical;
+            height: 100px;
+        }
+        .submit-btn {
+            background-color: #0A192F;
+            color: #ffffff;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .submit-btn:hover {
+            background-color: #172A45;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <img src="logo.png" alt="CMSFQ Logo" class="logo">
+    </header>
+
+    <div class="header content">
+        <h1>STUGOV Administration Portal</h1>
+        <p>Add new candidates to the official election system.</p>
+        <a href="index.html" class="nav-btn" style="padding: 8px 16px; font-size: 0.9rem; margin-top: 15px; display: inline-flex;">← Back to Portal</a>
+    </div>
+
+    <div class="admin-container">
+        <form id="candidateForm" onsubmit="submitCandidate(event)">
+            
+            <div class="form-group">
+                <label for="adminPasscode">Admin Security Passcode</label>
+                <input type="password" id="adminPasscode" required placeholder="Enter admin password">
+            </div>
+
+            <div class="form-group">
+                <label for="position">Position</label>
+                <select id="position" required>
+                    <option value="">-- Select Position --</option>
+                    <option value="President">President</option>
+                    <option value="Vice President">Vice President</option>
+                    <option value="Treasurer">Treasurer</option>
+                    <option value="Secretary">Secretary</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="name">Candidate Full Name</label>
+                <input type="text" id="name" required placeholder="e.g. Maria Garcia">
+            </div>
+
+            <div class="form-group">
+                <label for="bio">Platform / Biography</label>
+                <textarea id="bio" required placeholder="Brief candidate bio or key platform goals..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="imageFile">Candidate Profile Photo</label>
+                <input type="file" id="imageFile" accept="image/*" required>
+            </div>
+
+            <button type="submit" id="submitBtn" class="submit-btn">Register Candidate</button>
+        </form>
+    </div>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9x_5UynkS7hOrFUTHnudOVcF85PeRhl8ljLt-kE4kGqhlhfGgvVSh2ADLAp3jPqFi/exec";
+
+        async function submitCandidate(event) {
+            event.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const passcode = document.getElementById('adminPasscode').value;
+            const position = document.getElementById('position').value;
+            const name = document.getElementById('name').value;
+            const bio = document.getElementById('bio').value;
+            const imageInput = document.getElementById('imageFile');
+
+            if (!imageInput.files[0]) {
+                alert("Please select an image file.");
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Uploading & Saving...";
+
+            const file = imageInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async function() {
+                const base64Data = reader.result.split(',')[1];
+                
+                const payload = {
+                    action: "addCandidate",
+                    passcode: passcode,
+                    position: position,
+                    name: name,
+                    bio: bio,
+                    imageFile: {
+                        filename: file.name,
+                        mimeType: file.type,
+                        base64: base64Data
+                    }
+                };
+
+                try {
+                    const response = await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.status === "success") {
+                        alert(`Candidate ${name} successfully registered!`);
+                        document.getElementById('candidateForm').reset();
+                    } else {
+                        alert("Error: " + (result.message || "Unauthorized or invalid passcode."));
+                    }
+                } catch (err) {
+                    alert("Failed to reach server. Please check connection.");
+                    console.error(err);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = "Register Candidate";
+                }
+            };
+
+            reader.readAsDataURL(file);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMSFQ STUGOV - President Candidates</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <img src="logo.png" alt="CMSFQ Logo" class="logo">
+    </header>
+
+    <div class="header content">
+        <h1>CMSFQ Student Government Elections - President</h1>
+        <h2>Welcome to the CMSFQ Student Government Elections Portal</h2>
+        <p>Here you can find information about the candidates, their platforms, and cast your vote in the upcoming election.</p>
+        <a href="index.html" class="nav-btn" style="padding: 8px 16px; font-size: 0.9rem; margin-top: 15px; display: inline-flex;">← Back to Positions</a>
+    </div>
+
+    <div class="Candidate type">
+        <h3>President Candidates</h3>
+        <p>Meet the candidates running for the position of President:</p>
+        
+        <div class="candidates" id="candidateGrid">
+            <p>Loading candidates...</p>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9x_5UynkS7hOrFUTHnudOVcF85PeRhl8ljLt-kE4kGqhlhfGgvVSh2ADLAp3jPqFi/exec";
+        const CURRENT_POSITION = "President";
+        
+        // Dynamic variables populated via server response
+        let currentElectionYear = null;
+        let voteStorageKey = null;
+
+        async function loadCandidates() {
+            const grid = document.getElementById('candidateGrid');
+            
+            try {
+                const response = await fetch(SCRIPT_URL);
+                const data = await response.json();
+                
+                // Extract active year and candidate list
+                currentElectionYear = data.activeYear || new Date().getFullYear();
+                const candidates = data.candidates || [];
+                
+                // Dynamically scope storage key based on server's active year
+                voteStorageKey = `hasVoted_${currentElectionYear}_${CURRENT_POSITION.replace(/\s+/g, '_')}`;
+                const hasVoted = localStorage.getItem(voteStorageKey);
+
+                const filtered = candidates.filter(c => 
+                    c.position && c.position.toLowerCase() === CURRENT_POSITION.toLowerCase()
+                );
+                
+                if (filtered.length === 0) {
+                    grid.innerHTML = "<p>No candidates listed for this position yet.</p>";
+                    return;
+                }
+                
+                grid.innerHTML = "";
+                
+                filtered.forEach(cand => {
+                    const card = document.createElement('div');
+                    card.className = 'candidate';
+                    
+                    const buttonText = hasVoted ? "Voted" : "Vote";
+                    const disabledAttr = hasVoted ? "disabled style='opacity: 0.6; cursor: not-allowed;'" : "";
+                    
+                    card.innerHTML = `
+                        <img src="${cand.photoUrl}" alt="${cand.name}" onerror="this.onerror=null; this.src='pfp.jpeg';">
+                        <h4>${cand.name}</h4>
+                        <p>${cand.bio}</p>
+                        <button class="vote-button" ${disabledAttr} onclick="castVote('${cand.name}')">${buttonText}</button>
+                    `;
+                    grid.appendChild(card);
+                });
+
+                if (hasVoted) {
+                    const notice = document.createElement('p');
+                    notice.style.color = "var(--navy-blue, #0A192F)";
+                    notice.style.fontWeight = "bold";
+                    notice.style.marginTop = "15px";
+                    notice.textContent = `You have already cast your vote for this position in the ${currentElectionYear} election on this device.`;
+                    grid.parentElement.appendChild(notice);
+                }
+            } catch (err) {
+                grid.innerHTML = "<p>Error loading candidates. Please try refreshing the page.</p>";
+                console.error(err);
+            }
+        }
+
+        async function castVote(candidateName) {
+            if (!voteStorageKey || !currentElectionYear) {
+                alert("System initialization error. Please refresh the page and try again.");
+                return;
+            }
+
+            if (localStorage.getItem(voteStorageKey)) {
+                alert(`You have already voted for this position in the ${currentElectionYear} election!`);
+                return;
+            }
+
+            const email = prompt("Enter your school email (@menoruio.edu.ec) to confirm your vote:");
+            if (!email) return;
+
+            const trimmedEmail = email.trim().toLowerCase();
+
+            if (!trimmedEmail.endsWith("@menoruio.edu.ec")) {
+                alert("Access denied. You must use an official @menoruio.edu.ec email address.");
+                return;
+            }
+
+            if (!confirm(`Cast your vote for ${candidateName} using ${trimmedEmail}?`)) {
+                return;
+            }
+
+            const payload = {
+                action: "castVote",
+                year: currentElectionYear,
+                email: trimmedEmail,
+                position: CURRENT_POSITION,
+                candidate: candidateName
+            };
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    localStorage.setItem(voteStorageKey, "true");
+                    alert(`Your vote for ${candidateName} has been recorded! Thank you.`);
+                    loadCandidates();
+                } else {
+                    alert(result.message || "Could not log vote.");
+                }
+            } catch (err) {
+                alert("Failed to connect to the server. Please check your internet connection.");
+                console.error(err);
+            }
+        }
+
+        loadCandidates();
+    </script>
+</body>
+</html>
