@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMSFQ STUGOV - Classcos lists</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <img src="logo.png" alt="CMSFQ Logo" class="logo">
+    </header>
+
+    <div class="header content">
+        <h1>Colegio Menor Student Government Elections</h1>
+        <h2>Welcome to the CMSFQ Student Government Elections Portal</h2>
+        <p>Here you can find information about your grade's Classcos lists.</p>
+        <a href="index.html" class="nav-btn" style="padding: 8px 16px; font-size: 0.9rem; margin-top: 15px; display: inline-flex;">← Back to Positions</a>
+    </div>
+
+    <div class="candidate-type">
+        <h3>Candidate Type</h3>
+        <p>Choose your grade to learn about your Classcos:</p>
+        <div class="button-grid">
+            <a href="classcos9.html" class="nav-btn">9th Grade</a>
+            <a href="classcos10.html" class="nav-btn">10th Grade</a>
+            <a href="classcos11.html" class="nav-btn">11th Grade</a>
+            <a href="classcos12.html" class="nav-btn">12th Grade</a>
+        </div>
+        <div id="statusNotice" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9x_5UynkS7hOrFUTHnudOVcF85PeRhl8ljLt-kE4kGqhlhfGgvVSh2ADLAp3jPqFi/exec";
+
+        async function checkStatus() {
+            try {
+                const response = await fetch(SCRIPT_URL);
+                const data = await response.json();
+                const activeYear = data.activeYear || new Date().getFullYear();
+                const globalLockKey = `hasVoted_${activeYear}_Classcos_Category`;
+
+                if (localStorage.getItem(globalLockKey)) {
+                    const notice = document.getElementById('statusNotice');
+                    notice.innerHTML = `<p style="color: var(--navy-blue, #0A192F); font-weight: bold;">Note: You have already cast your Classcos vote for the ${activeYear} election cycle.</p>`;
+                }
+            } catch (err) {
+                console.error("Status check error:", err);
+            }
+        }
+        checkStatus();
+    </script>
+</body>
+</html>

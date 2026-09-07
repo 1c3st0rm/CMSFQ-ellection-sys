@@ -34,6 +34,16 @@
             resize: vertical;
             height: 100px;
         }
+        .grade-select-container {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            background-color: #f4f6f8;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
         .submit-btn {
             background-color: #0A192F;
             color: #ffffff;
@@ -70,19 +80,31 @@
             </div>
 
             <div class="form-group">
-                <label for="position">Position</label>
-                <select id="position" required>
+                <label for="position">Position / Category</label>
+                <select id="position" onchange="toggleGradeSelector()" required>
                     <option value="">-- Select Position --</option>
                     <option value="President">President</option>
                     <option value="Vice President">Vice President</option>
                     <option value="Treasurer">Treasurer</option>
                     <option value="Secretary">Secretary</option>
+                    <option value="Classcos">Classcos (Class Representatives)</option>
+                </select>
+            </div>
+
+            <!-- Dynamic Grade Selector for Classcos -->
+            <div id="gradeContainer" class="grade-select-container">
+                <label for="gradeSelect" style="font-weight: bold; color: #0A192F;">Select Grade Level:</label>
+                <select id="gradeSelect">
+                    <option value="classcos9">9th Grade (classcos9)</option>
+                    <option value="classcos10">10th Grade (classcos10)</option>
+                    <option value="classcos11">11th Grade (classcos11)</option>
+                    <option value="classcos12">12th Grade (classcos12)</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="name">Candidate Full Name</label>
-                <input type="text" id="name" required placeholder="e.g. Maria Garcia">
+                <label for="name">Candidate / List Name</label>
+                <input type="text" id="name" required placeholder="e.g. Maria Garcia or List Alpha">
             </div>
 
             <div class="form-group">
@@ -102,12 +124,19 @@
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9x_5UynkS7hOrFUTHnudOVcF85PeRhl8ljLt-kE4kGqhlhfGgvVSh2ADLAp3jPqFi/exec";
 
+        function toggleGradeSelector() {
+            const mainPosition = document.getElementById('position').value;
+            const gradeContainer = document.getElementById('gradeContainer');
+            gradeContainer.style.display = (mainPosition === "Classcos") ? "flex" : "none";
+        }
+
         async function submitCandidate(event) {
             event.preventDefault();
 
             const submitBtn = document.getElementById('submitBtn');
             const passcode = document.getElementById('adminPasscode').value;
-            const position = document.getElementById('position').value;
+            const mainPosition = document.getElementById('position').value;
+            const gradeSelect = document.getElementById('gradeSelect').value;
             const name = document.getElementById('name').value;
             const bio = document.getElementById('bio').value;
             const imageInput = document.getElementById('imageFile');
@@ -115,6 +144,12 @@
             if (!imageInput.files[0]) {
                 alert("Please select an image file.");
                 return;
+            }
+
+            // Determines position string: uses classcos9, classcos10, etc. if Classcos is selected
+            let finalPosition = mainPosition;
+            if (mainPosition === "Classcos") {
+                finalPosition = gradeSelect;
             }
 
             submitBtn.disabled = true;
@@ -129,7 +164,7 @@
                 const payload = {
                     action: "addCandidate",
                     passcode: passcode,
-                    position: position,
+                    position: finalPosition,
                     name: name,
                     bio: bio,
                     imageFile: {
@@ -149,8 +184,9 @@
                     const result = await response.json();
 
                     if (result.status === "success") {
-                        alert(`Candidate ${name} successfully registered!`);
+                        alert(`Candidate "${name}" successfully registered under target position: ${finalPosition}!`);
                         document.getElementById('candidateForm').reset();
+                        toggleGradeSelector();
                     } else {
                         alert("Error: " + (result.message || "Unauthorized or invalid passcode."));
                     }
